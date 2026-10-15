@@ -1,0 +1,16 @@
+{
+  "name": "patchproof-owasp-javascript-benchmark",
+  "version": "1.0.0",
+  "description": "JavaScript/Node.js OWASP Top 10 Benchmark and Patch Verification Suite",
+  "main": "app_patched.js",
+  "scripts": {
+    "test": "node --test test_regression.test.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "supertest": "^6.3.4"
+  }
+}

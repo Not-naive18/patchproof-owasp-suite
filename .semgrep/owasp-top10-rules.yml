@@ -1,0 +1,223 @@
+rules:
+  # =========================================================================
+  # OWASP A01:2021 - Broken Access Control
+  # =========================================================================
+  - id: owasp-a01-missing-auth-decorator-python
+    languages: [python]
+    severity: WARNING
+    message: "Potential Broken Access Control: Sensitive admin endpoint defined without authentication check or decorator."
+    patterns:
+      - pattern-either:
+          - pattern: |
+              @app.route("/admin/...")
+              def $FUNC(...):
+                  ...
+          - pattern: |
+              @router.get("/admin/...")
+              def $FUNC(...):
+                  ...
+      - pattern-not: |
+          @$AUTH_DECORATOR
+          def $FUNC(...):
+              ...
+    metadata:
+      cwe: "CWE-285: Improper Authorization"
+      owasp: "A01:2021 - Broken Access Control"
+
+  - id: owasp-a01-direct-object-reference-js
+    languages: [javascript, typescript]
+    severity: WARNING
+    message: "Potential Insecure Direct Object Reference (IDOR): Accessing database record directly by user-supplied ID parameter without tenancy or user ownership validation."
+    pattern: |
+      app.get('/api/users/:id', (req, res) => {
+        ...
+        $DB.query("SELECT * FROM users WHERE id = " + req.params.id, ...);
+        ...
+      })
+    metadata:
+      cwe: "CWE-639: Authorization Bypass Through User-Controlled Key"
+      owasp: "A01:2021 - Broken Access Control"
+
+  # =========================================================================
+  # OWASP A02:2021 - Cryptographic Failures
+  # =========================================================================
+  - id: owasp-a02-hardcoded-secret-key-python
+    languages: [python]
+    severity: ERROR
+    message: "Cryptographic Failure: Hardcoded secret key detected in source code. Use environment variables or secure key vaults."
+    patterns:
+      - pattern-either:
+          - pattern: |
+              SECRET_KEY = "..."
+          - pattern: |
+              JWT_SECRET = "..."
+          - pattern: |
+              API_KEY = "..."
+    metadata:
+      cwe: "CWE-798: Use of Hard-coded Credentials"
+      owasp: "A02:2021 - Cryptographic Failures"
+
+  - id: owasp-a02-weak-hash-algorithm-java
+    languages: [java]
+    severity: WARNING
+    message: "Cryptographic Failure: Weak hashing algorithm (MD5/SHA-1) detected. Use SHA-256, Argon2, or bcrypt for sensitive data and passwords."
+    patterns:
+      - pattern-either:
+          - pattern: MessageDigest.getInstance("MD5")
+          - pattern: MessageDigest.getInstance("SHA-1")
+    metadata:
+      cwe: "CWE-328: Use of Weak Hash"
+      owasp: "A02:2021 - Cryptographic Failures"
+
+  # =========================================================================
+  # OWASP A03:2021 - Injection
+  # =========================================================================
+  - id: owasp-a03-sql-injection-python
+    languages: [python]
+    severity: ERROR
+    message: "SQL Injection: Unsanitized string formatting or concatenation detected inside SQL execution call. Use parameterized queries."
+    patterns:
+      - pattern-either:
+          - pattern: cursor.execute(f"... {$PARAM} ...")
+          - pattern: cursor.execute("..." % ($PARAM))
+          - pattern: cursor.execute("..." + $PARAM + "...")
+    metadata:
+      cwe: "CWE-89: SQL Injection"
+      owasp: "A03:2021 - Injection"
+
+  - id: owasp-a03-command-injection-nodejs
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: "Command Injection: Unsanitized user input passed directly to child_process exec(). Use execFile or parameterized arguments."
+    patterns:
+      - pattern-either:
+          - pattern: exec("..." + $INPUT + "...", ...)
+          - pattern: exec(`...${$INPUT}...`, ...)
+    metadata:
+      cwe: "CWE-78: OS Command Injection"
+      owasp: "A03:2021 - Injection"
+
+  - id: owasp-a03-sql-injection-golang
+    languages: [golang]
+    severity: ERROR
+    message: "SQL Injection: SQL statement formatted dynamically with fmt.Sprintf. Use parameterized queries ($1, ?)."
+    pattern: |
+      $DB.Query(fmt.Sprintf("...", ...))
+    metadata:
+      cwe: "CWE-89: SQL Injection"
+      owasp: "A03:2021 - Injection"
+
+  - id: owasp-a03-sql-injection-php
+    languages: [php]
+    severity: ERROR
+    message: "SQL Injection: Concatenating unescaped superglobal variables into SQL query string."
+    patterns:
+      - pattern-either:
+          - pattern: $DB->query("... " . $_GET[...] . " ...")
+          - pattern: $DB->query("... " . $_POST[...] . " ...")
+    metadata:
+      cwe: "CWE-89: SQL Injection"
+      owasp: "A03:2021 - Injection"
+
+  - id: owasp-a03-sql-injection-csharp
+    languages: [csharp]
+    severity: ERROR
+    message: "SQL Injection: Unparameterized SQL command text dynamically concatenated in SqlCommand."
+    pattern: |
+      new SqlCommand("..." + $INPUT + "...", $CONN)
+    metadata:
+      cwe: "CWE-89: SQL Injection"
+      owasp: "A03:2021 - Injection"
+
+  # =========================================================================
+  # OWASP A04:2021 - Insecure Design
+  # =========================================================================
+  - id: owasp-a04-unrestricted-rate-limit-js
+    languages: [javascript, typescript]
+    severity: WARNING
+    message: "Insecure Design: Sensitive authentication or password-reset route defined without rate-limiting middleware."
+    patterns:
+      - pattern: |
+          app.post('/api/login', (req, res) => { ... })
+    metadata:
+      cwe: "CWE-307: Improper Restriction of Excessive Authentication Attempts"
+      owasp: "A04:2021 - Insecure Design"
+
+  # =========================================================================
+  # OWASP A05:2021 - Security Misconfiguration
+  # =========================================================================
+  - id: owasp-a05-cors-wildcard-credentials-js
+    languages: [javascript, typescript]
+    severity: WARNING
+    message: "Security Misconfiguration: Overly permissive CORS policy with wildcard origin while credentials may be accepted."
+    pattern: |
+      app.use(cors({ origin: "*", credentials: true }))
+    metadata:
+      cwe: "CWE-942: Permissive Cross-Domain Policy"
+      owasp: "A05:2021 - Security Misconfiguration"
+
+  - id: owasp-a05-debug-mode-enabled-python
+    languages: [python]
+    severity: ERROR
+    message: "Security Misconfiguration: Flask application started with debug=True in production code."
+    pattern: |
+      app.run(..., debug=True, ...)
+    metadata:
+      cwe: "CWE-489: Active Debug Code"
+      owasp: "A05:2021 - Security Misconfiguration"
+
+  # =========================================================================
+  # OWASP A07:2021 - Identification and Authentication Failures
+  # =========================================================================
+  - id: owasp-a07-plaintext-password-compare-python
+    languages: [python]
+    severity: ERROR
+    message: "Authentication Failure: Comparing plaintext passwords directly instead of using constant-time hashing (bcrypt/argon2)."
+    pattern: |
+      if $USER.password == $PASSWORD:
+          ...
+    metadata:
+      cwe: "CWE-287: Improper Authentication"
+      owasp: "A07:2021 - Identification and Authentication Failures"
+
+  # =========================================================================
+  # OWASP A08:2021 - Software and Data Integrity Failures
+  # =========================================================================
+  - id: owasp-a08-unsafe-pickle-python
+    languages: [python]
+    severity: ERROR
+    message: "Software and Data Integrity: Unsafe deserialization using pickle.loads on untrusted input allows arbitrary remote code execution."
+    pattern: |
+      pickle.loads($DATA)
+    metadata:
+      cwe: "CWE-502: Deserialization of Untrusted Data"
+      owasp: "A08:2021 - Software and Data Integrity Failures"
+
+  # =========================================================================
+  # OWASP A10:2021 - Server-Side Request Forgery (SSRF)
+  # =========================================================================
+  - id: owasp-a10-ssrf-unvalidated-url-python
+    languages: [python]
+    severity: ERROR
+    message: "Server-Side Request Forgery (SSRF): Fetching remote resources using unvalidated user input URL."
+    patterns:
+      - pattern-either:
+          - pattern: requests.get(request.args.get("url"))
+          - pattern: requests.get($REQ.json["url"])
+          - pattern: urllib.request.urlopen(request.args.get("url"))
+    metadata:
+      cwe: "CWE-918: Server-Side Request Forgery (SSRF)"
+      owasp: "A10:2021 - Server-Side Request Forgery"
+
+  - id: owasp-a10-ssrf-unvalidated-url-node
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: "Server-Side Request Forgery (SSRF): Direct fetch or axios call using user-supplied request parameters without host allowlist."
+    patterns:
+      - pattern-either:
+          - pattern: axios.get(req.query.url)
+          - pattern: fetch(req.query.url)
+          - pattern: http.get(req.body.targetUrl, ...)
+    metadata:
+      cwe: "CWE-918: Server-Side Request Forgery (SSRF)"
+      owasp: "A10:2021 - Server-Side Request Forgery"

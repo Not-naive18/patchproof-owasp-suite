@@ -1,0 +1,78 @@
+name: "PatchProof Security Scan (OWASP Top 10)"
+
+on:
+  push:
+    branches: [ "main", "master", "develop" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  semgrep-scan:
+    name: "Semgrep SAST Multi-Language Audit"
+    runs-on: ubuntu-latest
+    container:
+      image: returntocorp/semgrep
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Execute Semgrep OWASP Top 10 Rules
+        run: |
+          semgrep scan \
+            --config .semgrep/owasp-top10-rules.yml \
+            --config "p/owasp-top-ten" \
+            --config "p/default" \
+            --sarif --output scan-results.sarif || true
+          semgrep scan --config .semgrep/owasp-top10-rules.yml --json --output scan-results.json || true
+
+      - name: Upload SARIF to GitHub Security Tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: scan-results.sarif
+
+      - name: Upload Scan Artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-findings
+          path: |
+            scan-results.sarif
+            scan-results.json
+
+  multi-language-linters:
+    name: "Ecosystem Security Checks"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run Bandit (Python SAST)
+        run: |
+          pip install bandit
+          bandit -r benchmarks/python/ -f json -o bandit-results.json || true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Audit Node.js Dependencies
+        run: |
+          cd benchmarks/javascript
+          npm audit --json > npm-audit.json || true
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.21"
+
+      - name: Run Gosec (Go SAST)
+        run: |
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
+          gosec -fmt=json -out=gosec-results.json ./benchmarks/golang/... || true

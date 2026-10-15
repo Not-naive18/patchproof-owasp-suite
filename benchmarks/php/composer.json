@@ -1,0 +1,17 @@
+{
+    "name": "patchproof/owasp-php-benchmark",
+    "description": "PHP OWASP Top 10 Benchmark and Patch Verification Suite",
+    "type": "project",
+    "require": {
+        "php": ">=8.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10.0"
+    },
+    "autoload": {
+        "classmap": [
+            "vulnerable.php",
+            "patched.php"
+        ]
+    }
+}
